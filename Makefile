@@ -14,4 +14,4 @@ compose_up_server_srv:
 	docker compose up -d  --scale client=0
 
 compose_up_server_cli:
-	docker compose up -d server --scale server=0 --scale prometheus=0 --scale grafana=0
+	docker compose up -d --scale server=0 --scale prometheus=0 --scale grafana=0
