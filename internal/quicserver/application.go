@@ -31,12 +31,10 @@ func NewApplication(log *slog.Logger) *Application {
 }
 
 func (a *Application) Start(ctx context.Context) error {
-	// Загружаем переменные окружения из .env файла (если есть)
 	if err := godotenv.Load(); err != nil {
 		a.logger.Debug("Failed to load .env file", "error", err)
 	}
 
-	// Парсим конфигурацию из переменных окружения
 	var cfg ServerConfig
 	if err := env.Parse(&cfg); err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
@@ -44,14 +42,12 @@ func (a *Application) Start(ctx context.Context) error {
 
 	a.logger.Info("Loaded configuration", "host", cfg.Host, "port", cfg.Port)
 
-	// Настройка TLS
 	tlsConfig, err := generateTLSConfig()
 	if err != nil {
 		return fmt.Errorf("failed to generate TLS config: %w", err)
 	}
 
-	// Создание QUIC-листенера
-	addr := net.JoinHostPort(cfg.Host, string(rune(cfg.Port)))
+	addr := net.JoinHostPort(cfg.Host, fmt.Sprintf("%d", cfg.Port))
 	listener, err := quic.ListenAddr(addr, tlsConfig, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start QUIC listener: %w", err)
@@ -59,23 +55,19 @@ func (a *Application) Start(ctx context.Context) error {
 
 	a.logger.Info("QUIC server started", "address", addr)
 
-	// Создаем сервер
 	srv := NewServer(ServerParams{
 		Logger:   a.logger,
 		Cfg:      cfg,
-		Listener: listener, // Передаем указатель на listener
+		Listener: listener,
 	})
 
-	// Устанавливаем обработчик (эхо-ответ)
 	srv.SetHandler(func(data []byte, stream quic.Stream, remoteAddr string) []byte {
 		return data
 	})
 
-	// Настройка graceful shutdown
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Запуск QUIC-сервера в отдельной горутине
 	go func() {
 		if err := srv.Start(ctx); err != nil {
 			a.logger.Error("QUIC server failed", "error", err)
@@ -83,18 +75,8 @@ func (a *Application) Start(ctx context.Context) error {
 		}
 	}()
 
-	// // Запуск метрик (если нужно)
-	// go func() {
-	// 	if err := startMetricsWebServer(cfg); err != nil {
-	// 		a.logger.Error("Failed to start metrics web server", "error", err)
-	// 		cancel()
-	// 	}
-	// }()
-
-	// Ожидание завершения
 	<-ctx.Done()
 
-	// Остановка сервера
 	srv.Stop()
 	a.logger.Info("Application shutdown complete")
 	return nil
@@ -128,9 +110,3 @@ func generateTLSConfig() (*tls.Config, error) {
 		NextProtos:   []string{"quic-echo-example"},
 	}, nil
 }
-
-// // startMetricsWebServer запускает веб-сервер для метрик (заглушка)
-// func startMetricsWebServer(cfg ServerConfig) error {
-// 	// Реализуйте запуск веб-сервера для метрик, если это необходимо
-// 	return nil
-// }

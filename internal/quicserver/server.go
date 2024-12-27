@@ -12,7 +12,7 @@ type HandlerFunc func(data []byte, stream quic.Stream, remoteAddr string) []byte
 
 type Server struct {
 	cfg      ServerConfig
-	listener *quic.Listener // Используем quic.Listener напрямую
+	listener *quic.Listener
 	ctx      context.Context
 	cancel   context.CancelFunc
 	wg       sync.WaitGroup
@@ -30,7 +30,7 @@ type ServerConfig struct {
 type ServerParams struct {
 	Cfg      ServerConfig
 	Logger   *slog.Logger
-	Listener *quic.Listener // Listener передается извне
+	Listener *quic.Listener
 }
 
 func NewServer(params ServerParams) *Server {
@@ -128,7 +128,11 @@ func (s *Server) Stop() {
 	}
 
 	// Закрываем listener, если он был инициализирован
-	s.listener.Close()
+	if s.listener != nil {
+		if err := s.listener.Close(); err != nil {
+			s.logger.Error("Failed to close QUIC listener", "error", err)
+		}
+	}
 
 	s.wg.Wait()
 	s.logger.Info("QUIC server stopped")
