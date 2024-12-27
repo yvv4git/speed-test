@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
@@ -32,25 +33,35 @@ func NewApplication(log *slog.Logger) *Application {
 
 func (a *Application) Start(ctx context.Context) error {
 	if err := godotenv.Load(); err != nil {
-		a.logger.Debug("Failed to load .env file", "error", err)
+		a.logger.Debug("load .env file", "error", err)
 	}
 
 	var cfg ServerConfig
 	if err := env.Parse(&cfg); err != nil {
-		return fmt.Errorf("failed to parse config: %w", err)
+		return fmt.Errorf("parse config: %w", err)
 	}
 
 	a.logger.Info("Loaded configuration", "host", cfg.Host, "port", cfg.Port)
 
 	tlsConfig, err := generateTLSConfig()
 	if err != nil {
-		return fmt.Errorf("failed to generate TLS config: %w", err)
+		return fmt.Errorf("generate TLS config: %w", err)
+	}
+
+	// Настройка QUIC-конфигурации
+	quicConfig := &quic.Config{
+		HandshakeIdleTimeout:  30 * time.Second, // Увеличьте таймаут рукопожатия
+		MaxIdleTimeout:        60 * time.Second, // Увеличьте таймаут бездействия
+		MaxIncomingStreams:    100,              // Максимальное количество входящих потоков
+		MaxIncomingUniStreams: 100,              // Максимальное количество входящих однонаправленных потоков
+		KeepAlivePeriod:       10 * time.Second, // Период отправки keep-alive пакетов
+		EnableDatagrams:       true,             // Включить поддержку датаграмм
 	}
 
 	addr := net.JoinHostPort(cfg.Host, fmt.Sprintf("%d", cfg.Port))
-	listener, err := quic.ListenAddr(addr, tlsConfig, nil)
+	listener, err := quic.ListenAddr(addr, tlsConfig, quicConfig)
 	if err != nil {
-		return fmt.Errorf("failed to start QUIC listener: %w", err)
+		return fmt.Errorf("start QUIC listener: %w", err)
 	}
 
 	a.logger.Info("QUIC server started", "address", addr)
@@ -71,6 +82,13 @@ func (a *Application) Start(ctx context.Context) error {
 	go func() {
 		if err := srv.Start(ctx); err != nil {
 			a.logger.Error("QUIC server failed", "error", err)
+			cancel()
+		}
+	}()
+
+	go func() {
+		if err := startMetricsWebServer(cfg); err != nil {
+			a.logger.Error("Failed to start metrics web server", "error", err)
 			cancel()
 		}
 	}()
@@ -107,6 +125,6 @@ func generateTLSConfig() (*tls.Config, error) {
 
 	return &tls.Config{
 		Certificates: []tls.Certificate{tlsCert},
-		NextProtos:   []string{"quic-echo-example"},
+		NextProtos:   []string{"quic-echo"},
 	}, nil
 }

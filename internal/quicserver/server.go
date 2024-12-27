@@ -110,6 +110,8 @@ func (s *Server) handleStream(stream quic.Stream, remoteAddr string) {
 				return
 			}
 
+			bytesReceived.Add(float64(n)) // Increment bytes received counter
+
 			if s.handler != nil {
 				response := s.handler(buf[:n], stream, remoteAddr)
 
@@ -117,6 +119,8 @@ func (s *Server) handleStream(stream quic.Stream, remoteAddr string) {
 					s.logger.Error("Failed to send response to QUIC stream", "error", err)
 					return
 				}
+
+				bytesSent.Add(float64(n)) // Increment bytes sent counter
 			}
 		}
 	}

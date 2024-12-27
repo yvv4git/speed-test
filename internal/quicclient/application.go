@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
@@ -27,13 +28,13 @@ func NewApplication(log *slog.Logger) *Application {
 func (a *Application) Start(ctx context.Context) error {
 	// Загружаем переменные окружения из .env файла (если есть)
 	if err := godotenv.Load(); err != nil {
-		a.logger.Debug("Failed to load .env file", "error", err)
+		a.logger.Debug("load .env file", "error", err)
 	}
 
 	// Парсим конфигурацию из переменных окружения
 	var cfg ClientConfig
 	if err := env.Parse(&cfg); err != nil {
-		return fmt.Errorf("failed to parse config: %w", err)
+		return fmt.Errorf("parse config: %w", err)
 	}
 
 	a.logger.Info("Starting QUIC client", slog.String("Host", cfg.ServerHost), slog.Int("Port", int(cfg.ServerPort)))
@@ -41,14 +42,24 @@ func (a *Application) Start(ctx context.Context) error {
 	// Настройка TLS (используем InsecureSkipVerify для тестирования)
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos:         []string{"quic-echo-example"},
+		NextProtos:         []string{"quic-echo"},
+	}
+
+	// Настройка QUIC-конфигурации
+	quicConfig := &quic.Config{
+		HandshakeIdleTimeout:  30 * time.Second, // Увеличьте таймаут рукопожатия
+		MaxIdleTimeout:        60 * time.Second, // Увеличьте таймаут бездействия
+		MaxIncomingStreams:    100,              // Максимальное количество входящих потоков
+		MaxIncomingUniStreams: 100,              // Максимальное количество входящих однонаправленных потоков
+		KeepAlivePeriod:       10 * time.Second, // Период отправки keep-alive пакетов
+		EnableDatagrams:       true,             // Включить поддержку датаграмм
 	}
 
 	// Подключение к серверу
 	addr := net.JoinHostPort(cfg.ServerHost, fmt.Sprintf("%d", cfg.ServerPort))
-	conn, err := quic.DialAddr(ctx, addr, tlsConfig, nil)
+	conn, err := quic.DialAddr(ctx, addr, tlsConfig, quicConfig)
 	if err != nil {
-		return fmt.Errorf("failed to connect to server: %w", err)
+		return fmt.Errorf("connect to server: %w", err)
 	}
 
 	// Создаем клиент
@@ -63,7 +74,6 @@ func (a *Application) Start(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	// Запуск клиента (блокирующий режим с graceful shutdown)
 	if err := client.Start(ctx); err != nil {
 		return fmt.Errorf("client failed: %w", err)
 	}

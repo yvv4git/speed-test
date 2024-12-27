@@ -10,7 +10,7 @@ services:
       - "8080:8080"
     networks:
       - speedtest-network
-    entrypoint: ./speedtest-tcp -t server
+    entrypoint: ./${BINARY_NAME} -t server
 
   client:
     image: yvv4docker/speedtest:latest
@@ -19,7 +19,7 @@ services:
     env_file: .env
     networks:
       - speedtest-network
-    entrypoint: ./speedtest-tcp -t client
+    entrypoint: ./${BINARY_NAME} -t client
 
   prometheus:
     image: prom/prometheus:latest
