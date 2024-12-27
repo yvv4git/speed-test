@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log/slog"
 	"net"
-	"time"
 )
 
 type Client struct {
@@ -66,8 +65,6 @@ func (c *Client) Start(ctx context.Context) error {
 				c.logger.Error("Failed to read response", "error", err)
 				return err
 			}
-
-			time.Sleep(1 * time.Second) // Потом можно убрать
 		}
 	}
 }

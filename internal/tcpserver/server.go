@@ -20,9 +20,10 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	Host    string `env:"TCP_SERVER_HOST" envDefault:"127.0.0.1"`
-	Port    uint16 `env:"TCP_SERVER_PORT" envDefault:"8080"`
-	BufSize uint16 `env:"TCP_SERVER_BUF_SIZE" envDefault:"1024"`
+	Host        string `env:"TCP_SERVER_HOST" envDefault:"127.0.0.1"`
+	Port        uint16 `env:"TCP_SERVER_PORT" envDefault:"8080"`
+	BufSize     uint16 `env:"TCP_SERVER_BUF_SIZE" envDefault:"1024"`
+	MetricsAddr string `env:"TCP_SERVER_METRICS_ADDR" envDefault:"127.0.0.1:8081"`
 }
 
 type ServerParams struct {
@@ -89,13 +90,17 @@ func (s *Server) handleConnection(conn net.Conn) {
 				return
 			}
 
+			bytesReceived.Add(float64(n)) // Increment bytes received counter
+
 			if s.handler != nil {
 				response := s.handler(buf[:n], remoteAddr)
 
-				if _, err := conn.Write(response); err != nil {
+				if n, err = conn.Write(response); err != nil {
 					s.logger.Error("Failed to send response to client", "error", err)
 					return
 				}
+
+				bytesSent.Add(float64(n)) // Increment bytes sent counter
 			}
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
@@ -52,12 +53,19 @@ func (a *Application) Start(ctx context.Context) error {
 		return data
 	})
 
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
 	go func() {
 		if err := srv.Start(ctx); err != nil {
 			a.logger.Error("Server failed", "error", err)
+			cancel()
+		}
+	}()
+
+	go func() {
+		if err := startMetricsWebServer(cfg); err != nil {
+			a.logger.Error("Failed to start metrics web server", "error", err)
 			cancel()
 		}
 	}()
