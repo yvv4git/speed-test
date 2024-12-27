@@ -32,6 +32,8 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}
 
+	a.logger.Info("Starting TCP client", slog.String("Host:", cfg.ServerHost), slog.Int("Port", int(cfg.ServerPort)))
+
 	addr := fmt.Sprintf("%s:%d", cfg.ServerHost, cfg.ServerPort)
 	conn, err := net.Dial("tcp", addr)
 	if err != nil {

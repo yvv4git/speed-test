@@ -15,9 +15,9 @@ type Client struct {
 }
 
 type ClientConfig struct {
-	ServerHost string `env:"TCP_SERVER_HOST" envDefault:"127.0.0.1"`
-	ServerPort uint16 `env:"TCP_SERVER_PORT" envDefault:"8080"`
-	BufSize    uint16 `env:"TCP_SERVER_BUF_SIZE" envDefault:"1024"`
+	ServerHost string `env:"TCP_CLIENT_SERVER_HOST" envDefault:"127.0.0.1"`
+	ServerPort uint16 `env:"TCP_CLIENT_SERVER_PORT" envDefault:"1543"`
+	BufSize    uint16 `env:"TCP_CLIENT_BUF_SIZE" envDefault:"1024"`
 }
 
 type ClientParams struct {

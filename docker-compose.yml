@@ -1,14 +1,10 @@
 ---
 services:
   server:
-    image: yvv4docker/speedtest-macos:latest
+    image: yvv4docker/speedtest:latest
     container_name: server
     hostname: server
-    environment:
-      - TCP_SERVER_HOST=0.0.0.0
-      - TCP_SERVER_PORT=1543
-      - TCP_SERVER_BUF_SIZE=1024
-      - TCP_SERVER_METRICS_ADDR=0.0.0.0:8080
+    env_file: .env
     ports:
       - "1543:1543"
       - "8080:8080"
@@ -17,20 +13,18 @@ services:
     entrypoint: ./speedtest-tcp -t server
 
   client:
-    image: yvv4docker/speedtest-macos:latest
+    image: yvv4docker/speedtest:latest
     container_name: client
     hostname: client
-    environment:
-      - TCP_SERVER_HOST=server
-      - TCP_SERVER_PORT=1543
-      - TCP_SERVER_BUF_SIZE=1024
-      - TCP_SERVER_METRICS_ADDR=8080
+    env_file: .env
     networks:
       - speedtest-network
     entrypoint: ./speedtest-tcp -t client
 
   prometheus:
     image: prom/prometheus:latest
+    container_name: prometheus
+    hostname: prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -42,6 +36,8 @@ services:
 
   grafana:
     image: grafana/grafana:latest
+    container_name: grafana
+    hostname: grafana
     ports:
       - "3000:3000"
     networks:

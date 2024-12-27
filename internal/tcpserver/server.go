@@ -20,10 +20,10 @@ type Server struct {
 }
 
 type ServerConfig struct {
-	Host        string `env:"TCP_SERVER_HOST" envDefault:"127.0.0.1"`
-	Port        uint16 `env:"TCP_SERVER_PORT" envDefault:"8080"`
+	Host        string `env:"TCP_SERVER_HOST" envDefault:"0.0.0.0"`
+	Port        uint16 `env:"TCP_SERVER_PORT" envDefault:"1543"`
 	BufSize     uint16 `env:"TCP_SERVER_BUF_SIZE" envDefault:"1024"`
-	MetricsAddr string `env:"TCP_SERVER_METRICS_ADDR" envDefault:"127.0.0.1:8081"`
+	MetricsAddr string `env:"TCP_SERVER_METRICS_ADDR" envDefault:"0.0.0.0:8080"`
 }
 
 type ServerParams struct {
