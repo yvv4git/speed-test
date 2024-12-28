@@ -25,12 +25,12 @@ func NewApplication(log *slog.Logger) *Application {
 
 func (a *Application) Start(ctx context.Context) error {
 	if err := godotenv.Load(); err != nil {
-		a.logger.Debug("Failed to load .env file", "error", err)
+		a.logger.Debug("load .env file", "error", err)
 	}
 
 	var cfg ServerConfig
 	if err := env.Parse(&cfg); err != nil {
-		return fmt.Errorf("failed to parse config: %w", err)
+		return fmt.Errorf("parse config: %w", err)
 	}
 
 	a.logger.Info("Loaded configuration", "host", cfg.Host, "port", cfg.Port)
@@ -38,7 +38,7 @@ func (a *Application) Start(ctx context.Context) error {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		return fmt.Errorf("failed to start TCP server: %w", err)
+		return fmt.Errorf("start TCP server: %w", err)
 	}
 
 	a.logger.Info("TCP server started", "address", addr)
