@@ -48,7 +48,6 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("generate TLS config: %w", err)
 	}
 
-	// Настройка QUIC-конфигурации
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout:  30 * time.Second, // Увеличьте таймаут рукопожатия
 		MaxIdleTimeout:        60 * time.Second, // Увеличьте таймаут бездействия
@@ -100,7 +99,6 @@ func (a *Application) Start(ctx context.Context) error {
 	return nil
 }
 
-// generateTLSConfig создает самоподписанный TLS-конфиг для QUIC
 func generateTLSConfig() (*tls.Config, error) {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {

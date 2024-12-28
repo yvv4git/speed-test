@@ -55,7 +55,6 @@ func (s *Server) Start(ctx context.Context) error {
 
 func (s *Server) acceptConnections() error {
 	for {
-		// Принятие нового соединения
 		session, err := s.listener.Accept(s.ctx)
 		if err != nil {
 			select {
@@ -80,7 +79,7 @@ func (s *Server) handleSession(session quic.Connection) {
 	s.logger.Info("New QUIC session", "remote_addr", remoteAddr)
 
 	for {
-		// Принятие нового потока в рамках сессии
+		// Accepting a new thread within the session
 		stream, err := session.AcceptStream(s.ctx)
 		if err != nil {
 			s.logger.Error("Failed to accept QUIC stream", "error", err)
@@ -131,7 +130,6 @@ func (s *Server) Stop() {
 		s.cancel()
 	}
 
-	// Закрываем listener, если он был инициализирован
 	if s.listener != nil {
 		if err := s.listener.Close(); err != nil {
 			s.logger.Error("Failed to close QUIC listener", "error", err)
