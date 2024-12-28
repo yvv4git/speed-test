@@ -40,7 +40,6 @@ func (c *Client) Start(ctx context.Context) error {
 		return errors.New("connection is not established")
 	}
 
-	// Открываем поток для передачи данных
 	stream, err := c.Conn.OpenStreamSync(ctx)
 	if err != nil {
 		c.logger.Error("Failed to open stream", "error", err)
@@ -56,7 +55,6 @@ func (c *Client) Start(ctx context.Context) error {
 			return nil
 
 		default:
-			// Генерация случайных байт
 			randomBytes := make([]byte, c.cfg.BufSize)
 			_, err := rand.Read(randomBytes)
 			if err != nil {
@@ -64,14 +62,12 @@ func (c *Client) Start(ctx context.Context) error {
 				return err
 			}
 
-			// Отправка данных на сервер
 			_, err = stream.Write(randomBytes)
 			if err != nil {
 				c.logger.Error("Failed to send random bytes", "error", err)
 				return err
 			}
 
-			// Чтение ответа от сервера
 			_, err = stream.Read(buf)
 			if err != nil {
 				c.logger.Error("Failed to read response", "error", err)

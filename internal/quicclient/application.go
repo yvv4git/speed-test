@@ -26,12 +26,10 @@ func NewApplication(log *slog.Logger) *Application {
 }
 
 func (a *Application) Start(ctx context.Context) error {
-	// Загружаем переменные окружения из .env файла (если есть)
 	if err := godotenv.Load(); err != nil {
 		a.logger.Debug("load .env file", "error", err)
 	}
 
-	// Парсим конфигурацию из переменных окружения
 	var cfg ClientConfig
 	if err := env.Parse(&cfg); err != nil {
 		return fmt.Errorf("parse config: %w", err)
@@ -39,13 +37,11 @@ func (a *Application) Start(ctx context.Context) error {
 
 	a.logger.Info("Starting QUIC client", slog.String("Host", cfg.ServerHost), slog.Int("Port", int(cfg.ServerPort)))
 
-	// Настройка TLS (используем InsecureSkipVerify для тестирования)
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 		NextProtos:         []string{"quic-echo"},
 	}
 
-	// Настройка QUIC-конфигурации
 	quicConfig := &quic.Config{
 		HandshakeIdleTimeout:  30 * time.Second, // Увеличьте таймаут рукопожатия
 		MaxIdleTimeout:        60 * time.Second, // Увеличьте таймаут бездействия
@@ -55,14 +51,12 @@ func (a *Application) Start(ctx context.Context) error {
 		EnableDatagrams:       true,             // Включить поддержку датаграмм
 	}
 
-	// Подключение к серверу
 	addr := net.JoinHostPort(cfg.ServerHost, fmt.Sprintf("%d", cfg.ServerPort))
 	conn, err := quic.DialAddr(ctx, addr, tlsConfig, quicConfig)
 	if err != nil {
 		return fmt.Errorf("connect to server: %w", err)
 	}
 
-	// Создаем клиент
 	client := NewClient(ClientParams{
 		Logger: a.logger,
 		Cfg:    cfg,
@@ -70,7 +64,6 @@ func (a *Application) Start(ctx context.Context) error {
 	})
 	defer client.Close()
 
-	// Настройка graceful shutdown
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
