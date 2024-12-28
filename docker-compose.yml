@@ -6,7 +6,10 @@ services:
     hostname: server
     env_file: .env
     ports:
-      - "1543:1543"
+      - "1543:1543/tcp"
+      - "1543:1543/udp"
+      - "1544:1544/tcp"
+      - "1544:1544/udp"
       - "8080:8080"
     networks:
       - speedtest-network
