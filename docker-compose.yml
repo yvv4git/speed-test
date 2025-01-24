@@ -12,7 +12,12 @@ services:
       - "1544:1544/udp"
       - "8080:8080"
     networks:
-      - speedtest-network
+      speedtest-network:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
     entrypoint: ./${BINARY_NAME} -t server
 
   client:
@@ -21,7 +26,12 @@ services:
     hostname: client
     env_file: .env
     networks:
-      - speedtest-network
+      speedtest-network:
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
     entrypoint: ./${BINARY_NAME} -t client
 
   prometheus:
