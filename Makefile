@@ -1,8 +1,11 @@
-build_macos:
+image_build_macos:
 	DOCKER_BUILDKIT=0 docker build -t yvv4docker/speedtest .
 
-build_linux:
+image_build_linux:
 	docker buildx build --platform linux/amd64 -t yvv4docker/speedtest .
+
+image_push:
+	docker push yvv4docker/speedtest
 
 compose_up_local:
 	docker compose up -d
