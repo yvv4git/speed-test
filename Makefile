@@ -4,13 +4,16 @@ image_build_macos:
 image_build_linux:
 	docker buildx build --platform linux/amd64 -t yvv4docker/speedtest .
 
+image_build_rpi:
+	docker build --platform linux/arm64 -t yvv4docker/speedtest .
+
 image_push:
 	docker push yvv4docker/speedtest
 
 compose_up_local:
 	docker compose up -d
 
-compose_down_local:
+compose_down:
 	docker compose down
 
 compose_up_server:
