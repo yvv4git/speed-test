@@ -51,7 +51,7 @@ func (a *Application) Start(ctx context.Context) error {
 	defer cancel()
 
 	// Blocking mode, but with graceful shutdown
-	if err := client.Start(ctx); err != nil {
+	if err = client.Start(ctx); err != nil {
 		return fmt.Errorf("start client: %w", err)
 	}
 
