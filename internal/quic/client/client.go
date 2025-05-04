@@ -11,23 +11,23 @@ import (
 
 type Client struct {
 	logger *slog.Logger
-	cfg    ClientConfig
+	cfg    Config
 	Conn   quic.Connection // Используем quic.Connection вместо net.Conn
 }
 
-type ClientConfig struct {
+type Config struct {
 	ServerHost string `env:"QUIC_CLIENT_SERVER_HOST" envDefault:"127.0.0.1"`
 	ServerPort uint16 `env:"QUIC_CLIENT_SERVER_PORT" envDefault:"1543"`
 	BufSize    uint16 `env:"QUIC_CLIENT_BUF_SIZE" envDefault:"1024"`
 }
 
-type ClientParams struct {
+type Params struct {
 	Logger *slog.Logger
-	Cfg    ClientConfig
+	Cfg    Config
 	Conn   quic.Connection
 }
 
-func NewClient(params ClientParams) *Client {
+func NewClient(params Params) *Client {
 	return &Client{
 		logger: params.Logger,
 		cfg:    params.Cfg,

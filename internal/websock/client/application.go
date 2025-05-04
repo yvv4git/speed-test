@@ -28,7 +28,7 @@ func (a *Application) Start(ctx context.Context) error {
 		a.logger.Debug("load .env file", "error", err)
 	}
 
-	var cfg ClientConfig
+	var cfg Config
 	if err := env.Parse(&cfg); err != nil {
 		return fmt.Errorf("parse config: %w", err)
 	}

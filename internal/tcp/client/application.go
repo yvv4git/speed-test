@@ -27,7 +27,7 @@ func (a *Application) Start(ctx context.Context) error {
 		a.logger.Debug("load .env file", "error", err)
 	}
 
-	var cfg ClientConfig
+	var cfg Config
 	if err := env.Parse(&cfg); err != nil {
 		return fmt.Errorf("parse config: %w", err)
 	}
@@ -40,7 +40,7 @@ func (a *Application) Start(ctx context.Context) error {
 		return fmt.Errorf("connect to server: %w", err)
 	}
 
-	client := NewClient(ClientParams{
+	client := NewClient(Params{
 		Logger: a.logger,
 		Cfg:    cfg,
 		Conn:   conn,

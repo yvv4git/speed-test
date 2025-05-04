@@ -9,14 +9,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ClientConfig struct {
+type Config struct {
 	LocalBindHost string `env:"WEB_CLIENT_BIND_HOST" envDefault:"127.0.0.1"`
 	LocalBindPort uint16 `env:"WEB_CLIENT_BIND_PORT" envDefault:"1234"`
 	WebSocketURL  string `env:"WEB_CLIENT_WS_URL" envDefault:"ws://localhost:80/tunnel"`
 	BufSize       uint16 `env:"WEB_CLIENT_BUF_SIZE" envDefault:"1024"`
 }
 
-func HandleLocalConnection(ctx context.Context, conn net.Conn, cfg ClientConfig, logger *slog.Logger) {
+func HandleLocalConnection(ctx context.Context, conn net.Conn, cfg Config, logger *slog.Logger) {
 	defer conn.Close()
 
 	wsConn, _, err := websocket.DefaultDialer.DialContext(ctx, cfg.WebSocketURL, nil)

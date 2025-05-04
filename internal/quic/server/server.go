@@ -11,7 +11,7 @@ import (
 type HandlerFunc func(data []byte, stream quic.Stream, remoteAddr string) []byte
 
 type Server struct {
-	cfg      ServerConfig
+	cfg      Config
 	listener *quic.Listener
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -20,20 +20,20 @@ type Server struct {
 	handler  HandlerFunc
 }
 
-type ServerConfig struct {
+type Config struct {
 	Host        string `env:"QUIC_SERVER_HOST" envDefault:"0.0.0.0"`
 	Port        uint16 `env:"QUIC_SERVER_PORT" envDefault:"1543"`
 	BufSize     uint16 `env:"QUIC_SERVER_BUF_SIZE" envDefault:"1024"`
 	MetricsAddr string `env:"QUIC_SERVER_METRICS_ADDR" envDefault:"0.0.0.0:8080"`
 }
 
-type ServerParams struct {
-	Cfg      ServerConfig
+type Params struct {
+	Cfg      Config
 	Logger   *slog.Logger
 	Listener *quic.Listener
 }
 
-func NewServer(params ServerParams) *Server {
+func NewServer(params Params) *Server {
 	return &Server{
 		cfg:      params.Cfg,
 		logger:   params.Logger,

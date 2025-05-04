@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type ServerConfig struct {
+type Config struct {
 	Host          string `env:"WEB_SERVER_HOST" envDefault:"0.0.0.0"`
 	Port          uint16 `env:"WEB_SERVER_PORT" envDefault:"80"`
 	HostForwardTo string `env:"WEB_FORWARD_TO_HOST" envDefault:"127.0.0.1"`
@@ -21,11 +21,11 @@ type ServerConfig struct {
 }
 
 type Server struct {
-	cfg    ServerConfig
+	cfg    Config
 	logger *slog.Logger
 }
 
-func NewServer(cfg ServerConfig, logger *slog.Logger) *Server {
+func NewServer(cfg Config, logger *slog.Logger) *Server {
 	return &Server{
 		cfg:    cfg,
 		logger: logger,

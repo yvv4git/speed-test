@@ -20,7 +20,7 @@ var (
 	})
 )
 
-func startMetricsWebServer(cfg ServerConfig) error {
+func startMetricsWebServer(cfg Config) error {
 	http.Handle("/metrics", promhttp.Handler())
 	return http.ListenAndServe(cfg.MetricsAddr, nil)
 }

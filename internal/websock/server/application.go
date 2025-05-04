@@ -28,7 +28,7 @@ func (a *Application) Start(ctx context.Context) error {
 		a.logger.Debug("No .env file found", "error", err)
 	}
 
-	var cfg ServerConfig
+	var cfg Config
 	if err := env.Parse(&cfg); err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
 	}

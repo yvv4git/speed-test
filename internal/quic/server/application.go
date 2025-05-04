@@ -36,7 +36,7 @@ func (a *Application) Start(ctx context.Context) error {
 		a.logger.Debug("load .env file", "error", err)
 	}
 
-	var cfg ServerConfig
+	var cfg Config
 	if err := env.Parse(&cfg); err != nil {
 		return fmt.Errorf("parse config: %w", err)
 	}
@@ -65,7 +65,7 @@ func (a *Application) Start(ctx context.Context) error {
 
 	a.logger.Info("QUIC server started", "address", addr)
 
-	srv := NewServer(ServerParams{
+	srv := NewServer(Params{
 		Logger:   a.logger,
 		Cfg:      cfg,
 		Listener: listener,
