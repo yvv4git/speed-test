@@ -1,4 +1,4 @@
-package webclient
+package client
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/joho/godotenv"
@@ -44,21 +45,25 @@ func (a *Application) Start(ctx context.Context) error {
 		slog.String("forward_to_ws", cfg.WebSocketURL),
 	)
 
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	go func() {
+		<-ctx.Done()
+		listener.Close()
+	}()
+
 	for {
-		select {
-		case <-ctx.Done():
-			a.logger.Info("Shutting down WebSocket client")
-			return nil
-		default:
-			conn, err := listener.Accept()
-			if err != nil {
-				a.logger.Error("Failed to accept connection", "error", err)
-				continue
+		conn, errAccept := listener.Accept()
+		if errAccept != nil {
+			if ctx.Err() != nil {
+				a.logger.Info("Shutting down WebSocket client")
+				return nil
 			}
-			go HandleLocalConnection(conn, cfg, a.logger)
+			a.logger.Error("Failed to accept connection", "error", errAccept)
+			continue
 		}
+
+		go HandleLocalConnection(ctx, conn, cfg, a.logger)
 	}
 }

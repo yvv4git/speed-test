@@ -1,4 +1,4 @@
-package webserver
+package server
 
 import (
 	"context"
@@ -33,18 +33,21 @@ func NewServer(cfg ServerConfig, logger *slog.Logger) *Server {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	http.HandleFunc("/tunnel", s.handleTunnel)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/tunnel", s.handleTunnel)
 
 	addr := fmt.Sprintf("%s:%d", s.cfg.Host, s.cfg.Port)
 	s.logger.Info("Starting WebSocket server", "address", addr)
 
-	server := &http.Server{Addr: addr}
+	server := &http.Server{
+		Addr:    addr,
+		Handler: mux,
+	}
 
 	go func() {
 		<-ctx.Done()
 		s.logger.Info("Shutting down WebSocket server...")
-		err := server.Shutdown(context.Background())
-		if err != nil {
+		if err := server.Shutdown(context.Background()); err != nil {
 			s.logger.Error("Failed to shutdown server", "error", err)
 		}
 	}()
@@ -98,17 +101,17 @@ func (s *Server) handleTunnel(w http.ResponseWriter, r *http.Request) {
 	// Канал TCP → WebSocket
 	buf := make([]byte, s.cfg.BufSize)
 	for {
-		n, err := tcpConn.Read(buf)
-		if err != nil {
+		n, errReadBuf := tcpConn.Read(buf)
+		if errReadBuf != nil {
 			if err != io.EOF {
-				s.logger.Warn("TCP read error", "error", err)
+				s.logger.Warn("TCP read error", "error", errReadBuf)
 			}
 			break
 		}
 
-		err = ws.WriteMessage(websocket.BinaryMessage, buf[:n])
-		if err != nil {
-			s.logger.Warn("WebSocket write error", "error", err)
+		errWriteBuf := ws.WriteMessage(websocket.BinaryMessage, buf[:n])
+		if errWriteBuf != nil {
+			s.logger.Warn("WebSocket write error", "error", errWriteBuf)
 			break
 		}
 

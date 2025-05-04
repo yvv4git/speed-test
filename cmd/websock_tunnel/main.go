@@ -7,8 +7,8 @@ import (
 
 	"github.com/alecthomas/kingpin/v2"
 	"github.com/yvv4git/speed-test/internal/utils"
-	"github.com/yvv4git/speed-test/internal/webclient"
-	"github.com/yvv4git/speed-test/internal/webserver"
+	"github.com/yvv4git/speed-test/internal/websock/client"
+	"github.com/yvv4git/speed-test/internal/websock/server"
 )
 
 type ApplicationType string
@@ -32,9 +32,9 @@ func main() {
 	var err error
 	switch ApplicationType(utils.Deref(appType)) {
 	case ApplicationTypeServer:
-		err = webserver.NewApplication(logger).Start(context.TODO())
+		err = server.NewApplication(logger).Start(context.TODO())
 	case ApplicationTypeClient:
-		err = webclient.NewApplication(logger).Start(context.TODO())
+		err = client.NewApplication(logger).Start(context.TODO())
 	default:
 		logger.Error("Unknown application type", "type", *appType)
 		os.Exit(1)
