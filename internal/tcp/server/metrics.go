@@ -1,4 +1,4 @@
-package tcpserver
+package server
 
 import (
 	"net/http"

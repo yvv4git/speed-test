@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/yvv4git/speed-test/internal/tcpclient"
-	"github.com/yvv4git/speed-test/internal/tcpserver"
+	"github.com/yvv4git/speed-test/internal/tcp/client"
+	"github.com/yvv4git/speed-test/internal/tcp/server"
 	"github.com/yvv4git/speed-test/internal/utils"
 )
 
@@ -32,9 +32,9 @@ func main() {
 	var err error
 	switch ApplicationType(utils.Deref(appType)) {
 	case ApplicationTypeServer:
-		err = tcpserver.NewApplication(logger).Start(context.TODO())
+		err = server.NewApplication(logger).Start(context.TODO())
 	case ApplicationTypeClient:
-		err = tcpclient.NewApplication(logger).Start(context.TODO())
+		err = client.NewApplication(logger).Start(context.TODO())
 	default:
 		logger.Error("Unknown application type", "type", *appType)
 		os.Exit(1)
