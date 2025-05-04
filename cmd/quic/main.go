@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/alecthomas/kingpin/v2"
-	"github.com/yvv4git/speed-test/internal/quicclient"
-	"github.com/yvv4git/speed-test/internal/quicserver"
+	"github.com/yvv4git/speed-test/internal/quic/client"
+	"github.com/yvv4git/speed-test/internal/quic/server"
 	"github.com/yvv4git/speed-test/internal/utils"
 )
 
@@ -32,9 +32,9 @@ func main() {
 	var err error
 	switch ApplicationType(utils.Deref(appType)) {
 	case ApplicationTypeServer:
-		err = quicserver.NewApplication(logger).Start(context.TODO())
+		err = server.NewApplication(logger).Start(context.TODO())
 	case ApplicationTypeClient:
-		err = quicclient.NewApplication(logger).Start(context.TODO())
+		err = client.NewApplication(logger).Start(context.TODO())
 	default:
 		logger.Error("Unknown application type", "type", *appType)
 		os.Exit(1)

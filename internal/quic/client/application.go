@@ -1,4 +1,4 @@
-package quicclient
+package client
 
 import (
 	"context"
