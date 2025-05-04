@@ -4,6 +4,7 @@ go 1.23.1
 
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/quic-go/quic-go v0.48.2
 )
 
