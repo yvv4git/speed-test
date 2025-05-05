@@ -13,16 +13,16 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Config и Client остаются без изменений
 type Config struct {
-	LocalHost  string `env:"SSH_LOCAL_HOST" envDefault:"127.0.0.1"`
-	LocalPort  uint16 `env:"SSH_LOCAL_PORT" envDefault:"2222"`
-	ServerHost string `env:"SSH_SERVER_HOST" envDefault:"localhost"`
-	ServerPort uint16 `env:"SSH_SERVER_PORT" envDefault:"22"`
-	ServerUser string `env:"SSH_SERVER_USER" envDefault:"root"`
-	ServerPass string `env:"SSH_SERVER_PASS" envDefault:"secret"`
-	RemoteHost string `env:"SSH_REMOTE_HOST" envDefault:"127.0.0.1"`
-	RemotePort uint16 `env:"SSH_REMOTE_PORT" envDefault:"1544"`
+	LocalHost  string        `env:"SSH_LOCAL_HOST" envDefault:"127.0.0.1"`
+	LocalPort  uint16        `env:"SSH_LOCAL_PORT" envDefault:"2222"`
+	ServerHost string        `env:"SSH_SERVER_HOST" envDefault:"localhost"`
+	ServerPort uint16        `env:"SSH_SERVER_PORT" envDefault:"22"`
+	ServerUser string        `env:"SSH_SERVER_USER" envDefault:"root"`
+	ServerPass string        `env:"SSH_SERVER_PASS" envDefault:"secret"`
+	RemoteHost string        `env:"SSH_REMOTE_HOST" envDefault:"127.0.0.1"`
+	RemotePort uint16        `env:"SSH_REMOTE_PORT" envDefault:"1544"`
+	TimeoutSSH time.Duration `env:"SSH_TIMEOUT_SSH" envDefault:"5s"`
 }
 
 type Client struct {
@@ -47,7 +47,7 @@ func (c *Client) Start(ctx context.Context) error {
 		User:            c.cfg.ServerUser,
 		Auth:            []ssh.AuthMethod{ssh.Password(c.cfg.ServerPass)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		Timeout:         10 * time.Second,
+		Timeout:         c.cfg.TimeoutSSH,
 	}
 
 	sshAddr := fmt.Sprintf("%s:%d", c.cfg.ServerHost, c.cfg.ServerPort)

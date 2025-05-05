@@ -19,4 +19,6 @@ func main() {
 		logger.Error("Application exited with error", "error", err)
 		os.Exit(1)
 	}
+
+	logger.Info("Application exited successfully")
 }
