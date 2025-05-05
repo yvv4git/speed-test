@@ -7,11 +7,13 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
 )
 
+// Config и Client остаются без изменений
 type Config struct {
 	LocalHost  string `env:"SSH_LOCAL_HOST" envDefault:"127.0.0.1"`
 	LocalPort  uint16 `env:"SSH_LOCAL_PORT" envDefault:"2222"`
@@ -42,98 +44,118 @@ func NewClient(params *Params) *Client {
 
 func (c *Client) Start(ctx context.Context) error {
 	sshConfig := &ssh.ClientConfig{
-		User: c.cfg.ServerUser,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(c.cfg.ServerPass),
-		},
+		User:            c.cfg.ServerUser,
+		Auth:            []ssh.AuthMethod{ssh.Password(c.cfg.ServerPass)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         10 * time.Second,
 	}
 
 	sshAddr := fmt.Sprintf("%s:%d", c.cfg.ServerHost, c.cfg.ServerPort)
 	sshClient, err := ssh.Dial("tcp", sshAddr, sshConfig)
 	if err != nil {
-		return fmt.Errorf("failed to dial SSH server: %w", err)
+		return fmt.Errorf("SSH connection failed to %s: %w", sshAddr, err)
 	}
-	defer sshClient.Close()
+	defer func() {
+		if err = sshClient.Close(); err != nil {
+			c.logger.Error("SSH client close error", "error", err)
+		}
+	}()
 
 	localAddr := fmt.Sprintf("%s:%d", c.cfg.LocalHost, c.cfg.LocalPort)
 	listener, err := net.Listen("tcp", localAddr)
 	if err != nil {
-		return fmt.Errorf("failed to listen on local address %s: %w", localAddr, err)
+		return fmt.Errorf("failed to listen on %s: %w", localAddr, err)
 	}
 
 	go func() {
 		<-ctx.Done()
-		c.logger.Info("Closing listener")
-		listener.Close()
+		if err = listener.Close(); err != nil {
+			c.logger.Error("Listener close error", "error", err)
+		}
 	}()
 
-	c.logger.Info("Local SSH tunnel established",
-		slog.String("listen", localAddr),
-		slog.String("forward_to", fmt.Sprintf("%s:%d", c.cfg.RemoteHost, c.cfg.RemotePort)),
-	)
+	c.logger.Info("SSH tunnel started",
+		"local", localAddr,
+		"remote", fmt.Sprintf("%s:%d", c.cfg.RemoteHost, c.cfg.RemotePort))
 
 	for {
-		select {
-		case <-ctx.Done():
-			c.logger.Info("Shutting down SSH tunnel client")
-			return ctx.Err()
-		default:
-			if err := listener.(*net.TCPListener).SetDeadline(time.Now().Add(time.Second)); err != nil {
-				c.logger.Warn("Failed to set deadline on listener", "error", err)
-				continue
+		conn, errAccept := listener.Accept()
+		if errAccept != nil {
+			if errors.Is(errAccept, net.ErrClosed) {
+				return nil
 			}
 
-			conn, errAccept := listener.Accept()
-			if errAccept != nil {
-				var netErr net.Error
-				if errors.As(errAccept, &netErr) && netErr.Timeout() {
-					continue
-				}
-
-				c.logger.Warn("Failed to accept connection", "error", errAccept)
-
-				continue
-			}
-
-			go c.handleConnection(ctx, sshClient, conn)
+			c.logger.Error("Accept connection error", "error", errAccept)
+			continue
 		}
+
+		go func(conn net.Conn) {
+			if err = c.handleConnection(ctx, sshClient, conn); err != nil {
+				c.logger.Error("Connection handler error", "error", err)
+			}
+		}(conn)
 	}
 }
 
-func (c *Client) handleConnection(ctx context.Context, sshClient *ssh.Client, conn net.Conn) {
-	defer conn.Close()
+func (c *Client) handleConnection(ctx context.Context, sshClient *ssh.Client, localConn net.Conn) error {
+	defer func() {
+		if err := localConn.Close(); err != nil && !isNetClosedError(err) {
+			c.logger.Warn("Local connection close warning", "error", err)
+		}
+	}()
 
 	remoteAddr := fmt.Sprintf("%s:%d", c.cfg.RemoteHost, c.cfg.RemotePort)
 	remoteConn, err := sshClient.Dial("tcp", remoteAddr)
 	if err != nil {
-		c.logger.Warn("Failed to dial remote through SSH", "error", err)
-		return
+		return fmt.Errorf("remote dial to %s: %w", remoteAddr, err)
 	}
-	defer remoteConn.Close()
+	defer func() {
+		if err = remoteConn.Close(); err != nil && !isNetClosedError(err) {
+			c.logger.Warn("Remote connection close warning", "error", err)
+		}
+	}()
 
-	done := make(chan struct{}, 2)
+	errCh := make(chan error, 2)
+	var wg sync.WaitGroup
+	wg.Add(2)
 
 	go func() {
-		if _, err = io.Copy(remoteConn, conn); err != nil && err != io.EOF {
-			c.logger.Debug("Error copying to remote", "error", err)
+		defer wg.Done()
+		_, err = io.Copy(remoteConn, localConn)
+		if err != nil && !isNetClosedError(err) {
+			errCh <- fmt.Errorf("local->remote copy error: %w", err)
 		}
-		done <- struct{}{}
 	}()
 
 	go func() {
-		if _, err = io.Copy(conn, remoteConn); err != nil && err != io.EOF {
-			c.logger.Debug("Error copying from remote", "error", err)
+		defer wg.Done()
+		_, err = io.Copy(localConn, remoteConn)
+		if err != nil && !isNetClosedError(err) {
+			errCh <- fmt.Errorf("remote->local copy error: %w", err)
 		}
-		done <- struct{}{}
+	}()
+
+	go func() {
+		wg.Wait()
+		close(errCh)
 	}()
 
 	select {
 	case <-ctx.Done():
-	case <-done:
-		select {
-		case <-done:
-		case <-time.After(100 * time.Millisecond): // Небольшой тайм-аут для второго io.Copy
+		return ctx.Err()
+	case errCopy, ok := <-errCh:
+		if ok && errCopy != nil {
+			return errCopy
 		}
+
+		return nil
 	}
+}
+
+func isNetClosedError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return errors.Is(err, net.ErrClosed) || errors.Is(err, io.EOF)
 }
