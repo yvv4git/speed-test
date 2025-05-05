@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
+	"github.com/yvv4git/speed-test/internal/metrics"
 )
 
 type Config struct {
@@ -81,20 +82,20 @@ func (s *Server) handleTunnel(w http.ResponseWriter, r *http.Request) {
 	// Канал WebSocket → TCP
 	go func() {
 		for {
-			_, data, errReadMessage := ws.ReadMessage()
+			bytesReceived, data, errReadMessage := ws.ReadMessage()
 			if errReadMessage != nil {
 				s.logger.Warn("WebSocket read error", "error", errReadMessage)
 				return
 			}
 
-			n, errWriteMessage := tcpConn.Write(data)
+			bytesSent, errWriteMessage := tcpConn.Write(data)
 			if errWriteMessage != nil {
 				s.logger.Warn("TCP write error", "error", errWriteMessage)
 				return
 			}
 
-			bytesReceived.Add(float64(len(data)))
-			bytesSent.Add(float64(n))
+			metrics.AddBytesReceived(bytesReceived)
+			metrics.AddBytesSent(bytesSent)
 		}
 	}()
 
@@ -115,7 +116,7 @@ func (s *Server) handleTunnel(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		bytesSent.Add(float64(n))
-		bytesReceived.Add(float64(n))
+		metrics.AddBytesReceived(n)
+		metrics.AddBytesSent(n)
 	}
 }
