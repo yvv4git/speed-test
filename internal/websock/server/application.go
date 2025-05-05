@@ -39,14 +39,11 @@ func (a *Application) Start(ctx context.Context) error {
 		"forward_to", fmt.Sprintf("%s:%d", cfg.HostForwardTo, cfg.PortForwardTo),
 	)
 
-	// Создаём сервер
 	srv := NewServer(cfg, a.logger)
 
-	// Контекст завершения по сигналу
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// Запуск сервера
 	go func() {
 		if err := srv.Start(ctx); err != nil {
 			a.logger.Error("WebSocket server error", "error", err)
@@ -54,7 +51,6 @@ func (a *Application) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Запуск метрик
 	go func() {
 		if err := startMetricsWebServer(cfg); err != nil {
 			a.logger.Error("Failed to start metrics server", "error", err)
