@@ -149,19 +149,19 @@ func (c *Client) handleConnection(ctx context.Context, sshClient *ssh.Client, co
 
 	select {
 	case <-copyCtx.Done():
-		if err = conn.Close(); err != nil {
+		if err = conn.Close(); err != nil && !isClosedConnError(err) {
 			c.logger.Warn("Failed to close connection", "error", err)
 		}
 
-		if err = remoteConn.Close(); err != nil {
+		if err = remoteConn.Close(); err != nil && !isClosedConnError(err) {
 			c.logger.Warn("Failed to close remote connection", "error", err)
 		}
 	case <-ctx.Done():
-		if err = conn.Close(); err != nil {
+		if err = conn.Close(); err != nil && !isClosedConnError(err) {
 			c.logger.Warn("Failed to close remote connection", "error", err)
 		}
 
-		if err = remoteConn.Close(); err != nil {
+		if err = remoteConn.Close(); err != nil && !isClosedConnError(err) {
 			c.logger.Warn("Failed to close remote connection", "error", err)
 		}
 	}
